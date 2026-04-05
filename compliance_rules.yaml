@@ -115,7 +115,10 @@ rules:
   # Directory Roles
   # -------------------------------------------------------------------------
   - name: "Global Administrator Count"
-    description: "There should be no more than 5 Global Administrators to minimise blast radius."
+    description: >
+      Best practice (Microsoft recommendation) is to have between 2 and 5 Global Administrators.
+      Fewer than 2 risks lockout; more than 5 unnecessarily expands the privileged blast radius.
+      This rule flags tenants with 6 or more Global Administrators for review.
     target: "DirectoryRoles"
     filter: "displayName eq 'Global Administrator'"
     conditions:

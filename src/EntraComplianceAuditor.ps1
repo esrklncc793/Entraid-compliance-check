@@ -161,12 +161,20 @@ function Test-Condition {
 
         'GreaterThan' {
             try { return ([double]$propValue -gt [double]$Condition.Value) }
-            catch { return $false }
+            catch {
+                Write-Verbose ("GreaterThan comparison failed for property '$($Condition.Property)': " +
+                    "value '$propValue' is not numeric. Treating condition as not satisfied.")
+                return $false
+            }
         }
 
         'LessThan' {
             try { return ([double]$propValue -lt [double]$Condition.Value) }
-            catch { return $false }
+            catch {
+                Write-Verbose ("LessThan comparison failed for property '$($Condition.Property)': " +
+                    "value '$propValue' is not numeric. Treating condition as not satisfied.")
+                return $false
+            }
         }
 
         default {

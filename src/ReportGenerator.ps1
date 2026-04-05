@@ -160,7 +160,7 @@ function ConvertTo-HtmlReport {
         [string]$Title = 'Entra ID Compliance Report'
     )
 
-    $generatedAt = (Get-Date).ToString('yyyy-MM-dd HH:mm:ss UTC')
+    $generatedAt = (Get-Date).ToUniversalTime().ToString('yyyy-MM-dd HH:mm:ss UTC')
     $html        = [System.Text.StringBuilder]::new()
 
     [void]$html.AppendLine((Get-HtmlHeader -Title $Title -GeneratedAt $generatedAt))
