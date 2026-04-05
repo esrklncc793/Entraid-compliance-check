@@ -1,0 +1,136 @@
+---
+# Entra ID Compliance Rules Configuration
+# Defines rules that are evaluated against Entra ID objects fetched via Microsoft Graph.
+#
+# Supported targets:
+#   Users                  - Entra ID user accounts
+#   Groups                 - Entra ID groups (Security, Microsoft 365, etc.)
+#   EnterpriseApplications - Service principals (enterprise apps / app registrations)
+#   AppRoleAssignments     - App role assignments on service principals
+#   DirectoryRoles         - Activated directory role memberships
+#
+# Supported operators:
+#   Equals            - property value equals the specified value (case-insensitive for strings)
+#   NotEquals         - property value does NOT equal the specified value
+#   Contains          - string property contains the specified substring
+#   NotContains       - string property does NOT contain the specified substring
+#   Exists            - property is not null / not empty
+#   NotExists         - property is null or empty
+#   IsTrue            - boolean property is $true
+#   IsFalse           - boolean property is $false
+#   GreaterThan       - numeric property is greater than the specified value
+#   LessThan          - numeric property is less than the specified value
+
+rules:
+
+  # -------------------------------------------------------------------------
+  # Users
+  # -------------------------------------------------------------------------
+  - name: "MFA Registration Required"
+    description: "All users must have at least one MFA authentication method registered."
+    target: "Users"
+    conditions:
+      - property: "StrongAuthenticationMethods"
+        operator: "Exists"
+
+  - name: "Guest Users Must Have Expiration"
+    description: "Guest (external) user accounts should have an account expiry date set."
+    target: "Users"
+    filter: "UserType eq 'Guest'"
+    conditions:
+      - property: "AccountExpires"
+        operator: "Exists"
+
+  - name: "Blocked Sign-In Users Check"
+    description: "Users whose sign-in is blocked should be reviewed for de-provisioning."
+    target: "Users"
+    conditions:
+      - property: "AccountEnabled"
+        operator: "IsFalse"
+
+  # -------------------------------------------------------------------------
+  # Groups
+  # -------------------------------------------------------------------------
+  - name: "Groups Must Have Owners"
+    description: "Every group must have at least one owner assigned."
+    target: "Groups"
+    conditions:
+      - property: "Owners"
+        operator: "Exists"
+
+  - name: "Dynamic Groups Must Have Membership Rule"
+    description: "Groups with dynamic membership type must define a membershipRule."
+    target: "Groups"
+    filter: "groupTypes/any(c:c eq 'DynamicMembership')"
+    conditions:
+      - property: "MembershipRule"
+        operator: "Exists"
+
+  # -------------------------------------------------------------------------
+  # Enterprise Applications (Service Principals)
+  # -------------------------------------------------------------------------
+  - name: "Enterprise App Visibility Check"
+    description: "Enterprise Applications visible in the launch pad must have defined required permissions."
+    target: "EnterpriseApplications"
+    conditions:
+      - property: "IsVisibleInLaunchpad"
+        operator: "IsTrue"
+      - property: "RequiredResourceAccess"
+        operator: "Exists"
+
+  - name: "Enterprise Apps Must Have Notes"
+    description: "All enterprise applications should have a description or notes for governance."
+    target: "EnterpriseApplications"
+    conditions:
+      - property: "Notes"
+        operator: "Exists"
+
+  - name: "Service Principals With Credentials Should Be Reviewed"
+    description: "Service principals that have key or password credentials must be regularly reviewed."
+    target: "EnterpriseApplications"
+    conditions:
+      - property: "KeyCredentials"
+        operator: "Exists"
+
+  # -------------------------------------------------------------------------
+  # App Role Assignments
+  # -------------------------------------------------------------------------
+  - name: "App Access Group Federation"
+    description: "App role assignments should be granted to Groups (federated) rather than individual Users."
+    target: "AppRoleAssignments"
+    conditions:
+      - property: "PrincipalType"
+        operator: "Equals"
+        value: "Group"
+
+  - name: "No Direct User App Role Assignments"
+    description: "Direct user app role assignments indicate a lack of group-based access governance."
+    target: "AppRoleAssignments"
+    conditions:
+      - property: "PrincipalType"
+        operator: "NotEquals"
+        value: "User"
+
+  # -------------------------------------------------------------------------
+  # Directory Roles
+  # -------------------------------------------------------------------------
+  - name: "Global Administrator Count"
+    description: >
+      Best practice (Microsoft recommendation) is to have between 2 and 5 Global Administrators.
+      Fewer than 2 risks lockout; more than 5 unnecessarily expands the privileged blast radius.
+      This rule flags tenants with 6 or more Global Administrators for review.
+    target: "DirectoryRoles"
+    filter: "displayName eq 'Global Administrator'"
+    conditions:
+      - property: "MemberCount"
+        operator: "LessThan"
+        value: 6
+
+  - name: "Privileged Role Administrator Must Exist"
+    description: "The Privileged Role Administrator role must have at least one active member."
+    target: "DirectoryRoles"
+    filter: "displayName eq 'Privileged Role Administrator'"
+    conditions:
+      - property: "MemberCount"
+        operator: "GreaterThan"
+        value: 0
