@@ -1,0 +1,31 @@
+# EntraComplianceAuditor – Compliance Rules Configuration
+# Adjust these values to match your organisation's security requirements.
+# This file is loaded at runtime by Get-ComplianceRules.
+# If the file is absent or unreadable the module falls back to built-in defaults.
+
+ConditionalAccess:
+  # Require a CA policy that blocks legacy authentication (exchangeActiveSync / other)
+  BlockLegacyAuthentication: true
+  # Require a CA policy that enforces MFA for directory roles
+  RequireMFAForAdmins: true
+  # Require a CA policy that enforces MFA for ALL users
+  RequireMFAForAllUsers: false
+  # Require a CA policy that enforces compliant-device access
+  RequireCompliantDevice: false
+
+MFAPolicy:
+  # Flag a finding when no admin MFA enforcement is detected
+  RequireAdminMFA: true
+  RequireUserMFA: false
+
+PasswordPolicy:
+  # Maximum acceptable password validity period in days
+  # (Graph API returns 2147483647 for "never expires")
+  MaxPasswordAgeDays: 90
+  MinPasswordLength: 8
+  EnableSelfServicePasswordReset: true
+
+SecurityDefaults:
+  # When true, a Fail result is raised if security defaults are disabled
+  # AND no equivalent Conditional Access policies are detected.
+  RequireSecurityDefaultsOrCA: true
